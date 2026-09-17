@@ -44,7 +44,7 @@ from datetime import datetime, timezone
 
 # Your ntfy topic. Treat it like a password: anyone who knows it can send you
 # notifications. Install the "ntfy" app (iOS/Android), subscribe to this topic.
-NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "CHANGE-ME-ahmed-swe-jobs-8f3a21")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "mohammed-swe-jobs-8f3a21")
 NTFY_SERVER = os.environ.get("NTFY_SERVER", "https://ntfy.sh")
 
 # Optional alternatives (leave blank to skip)
