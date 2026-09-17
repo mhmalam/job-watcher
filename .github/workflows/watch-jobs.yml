@@ -1,0 +1,54 @@
+name: Watch SWE internship postings
+
+# Runs in GitHub's cloud - your laptop can be closed.
+# Note: GitHub sometimes delays scheduled runs under load, so treat ~15 min as
+# "usually 15, occasionally 25". That is still far faster than checking by hand.
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes (UTC)
+  workflow_dispatch:          # lets you run it manually from the Actions tab
+
+# Needed so the workflow can commit the "already seen" state file back.
+permissions:
+  contents: write
+
+concurrency:
+  group: job-watcher
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check for new postings
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          # Optional extras - add them as repo secrets if you want them:
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          # LinkedIn is left off: LinkedIn blocks GitHub's IP ranges.
+          # Use LinkedIn's own job alert on your saved search instead.
+          LINKEDIN_ENABLED: "0"
+        run: python job_watcher.py
+
+      - name: Remember what we've seen
+        run: |
+          if [[ -n "$(git status --porcelain seen_jobs.json)" ]]; then
+            git config user.name "job-watcher"
+            git config user.email "actions@github.com"
+            git add seen_jobs.json
+            git commit -m "state: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            # Another run may have pushed first; rebase and retry rather than fail.
+            for i in 1 2 3; do
+              git pull --rebase --autostash && git push && break || sleep 5
+            done
+          else
+            echo "No state change."
+          fi
